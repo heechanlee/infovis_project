@@ -21,8 +21,19 @@ import { loadAndProcessData } from './loadAndProcessData';
 
 
 export const main = () => {
+  // let str = 'confirmed + deaths';
+  // let regex = /(.+) \+ (.+)/;
+  // if (str.match(regex)) {
+  //   console.log(`true\n${str.replace(regex, "$1")}\n${str.replace(regex, "$2")}`);
+  //   let k1 = str.replace(regex, "$1");
+  //   let k2 = str.replace(regex, "$2");
+  //   let d4t4 = {};
+  //   d4t4[k1] = loadAndProcessData(k1);
+  //   d4t4[k2] = loadAndProcessData(k2);
+  //   console.log(d4t4);
+  // }
 
-  let alldata = {}
+  let alldata = {};
   const colorScheme = {
                         'confirmed': 
                           {'default': "#ea0606", 'hover': "#9a0101"},
@@ -30,19 +41,21 @@ export const main = () => {
                           {'default': "#414040", 'hover': "black"},
                         'recovered':
                           {'default': "#25ec28", 'hover': "#2cc715"}
-                      }
-  const keys = ['confirmed', 'deaths', 'recovered']
+                      };
+  const keys = ['confirmed', 'deaths', 'recovered', 'confirmed + deaths', 'confirmed + recovered'];
+  let regex = /(.*) \+ (.*)/;
+
   keys.forEach(k => {
-    alldata[k] = loadAndProcessData(k)
+    alldata[k] = loadAndProcessData(k);
   })
+
+  console.log(alldata);
   
-  let current = 'confirmed'
+  let current = 'confirmed';
 
   let selectedRegion = null;
   let selectedDate = '01/22/20';
-  const parseID = d => {
-    return d["Country/Region"] + '/' + d["Province/State"];
-  }
+  const parseID = d => d["Country/Region"] + '/' + d["Province/State"];
   let DateKeys;
 
   const svg = select('svg');
@@ -91,13 +104,15 @@ export const main = () => {
   //selectbox
   const dropdownChange = function(){
     current = select(this).property('value');
+
     processed = alldata[current];
+    // console.log(processed);
 
     processed.then(data => {
       filteredData = data;
-      newDatarender(filteredData);      
+      // console.log(data);
+      newDatarender(filteredData);
     });
-
   }
 
   const dropdown = select("#selectbox")
@@ -113,43 +128,39 @@ export const main = () => {
 
   const newDatarender = data => {
 
-    const factor = current === "deaths" ? 1/2.5 : 1/3.5;
-    /*
-    const sizeScale = scaleSqrt()
-      .domain([0, max(data.covidData, radiusValue)])
-      .range([0, Math.pow(max(data.covidData, radiusValue), 1/3)]);
-    */
-   const sizeScale = d => Math.pow(d, factor);
+  // const factor = current === "deaths" ? 1/2.5 : 1/3.5;
+  //  const sizeScale = d => Math.pow(d, factor);
+    console.log(data);
+
+    const sizeScale = d => Math.pow(d/50, 1/2);
 
     data.covidData.forEach(d => {
       d.pos = projection(d.coords);
-    });
-    
+      d.state = data.name[0];
+    });   
 
     function handleMouseover(d, i){
       select(this)
-        .attr("fill", colorScheme[current]['hover']);
+        .attr("fill", colorScheme[data.name[0]]['hover']);
     }
 
     function handleMouseout(d, i){
       select(this)
-        .attr("fill", colorScheme[current]['default'])
+        .attr("fill", colorScheme[data.name[0]]['default'])
     }
 
     g.selectAll('circle').remove();
 
     const circles = g.selectAll('circle')
-      .data(data.covidData);
-
-
-    const circlesEnter = circles.enter();
-    circlesEnter
+      .data(data.covidData);    
+    
+    circles.enter()
       .append('circle')
-      .attr('class', 'country-circle')
+      .attr('class', `country-${data.name[0]}-circle`)
       .attr('cx', d => +d.pos[0])
       .attr('cy', d => +d.pos[1])
       .attr('r',  d => sizeScale(radiusValue(d)))
-      .attr("fill", colorScheme[current]['default'])
+      .attr("fill", colorScheme[data.name[0]]['default'])
       .attr("fill-opacity", "0.489216")
       .on('mouseover', handleMouseover)
       .on('mouseout', handleMouseout)
@@ -169,14 +180,11 @@ export const main = () => {
             d['Country/Region'],
             radiusValue(d)
           ].join(': ')
-      );
-    
+      );   
 
     circles
       .transition().duration(100)
       .attr('r', d => sizeScale(radiusValue(d)))
-      
-
     
     circles.selectAll('title')
         .text(d =>
@@ -194,7 +202,69 @@ export const main = () => {
             radiusValue(d)
           ].join(': ')
       );
+
+    if(data.covidData2) {
+      console.log("두번째 데이터");
+
+      data.covidData2.forEach(d => {
+        d.pos = projection(d.coords);
+        d.state = data.name[1];
+      });   
+
+      const circles2 = circles.select(`circle .country-${data.name[0]}-circle`)
+                        .data(data.covidData2);
     
+      circles2.enter()
+        .append('circle')
+        .attr('class', `country-${data.name[1]}-circle`)
+        .attr('cx', d => +d.pos[0])
+        .attr('cy', d => +d.pos[1])
+        .attr('r',  d => sizeScale(radiusValue(d)))
+        .attr("fill", colorScheme[data.name[1]]['default'])
+        .attr("fill-opacity", "0.489216")
+        .on('mouseover', handleMouseover)
+        .on('mouseout', handleMouseout)
+        .on('click', d => updateByClick(d))
+        .append('title')
+        .text(d =>
+            d['Province/State'] ?
+            [  
+              [
+                d['Country/Region'],
+                d['Province/State']
+              ].join(', '),
+                radiusValue(d)
+            ].join(': ') 
+              :
+            [
+              d['Country/Region'],
+              radiusValue(d)
+            ].join(': ')
+        );   
+
+      circles2
+        .transition().duration(100)
+        .attr('r', d => sizeScale(radiusValue(d)))
+    
+      circles2.selectAll('title')
+        .text(d =>
+          d['Province/State'] ?
+          [  
+            [
+              d['Country/Region'],
+              d['Province/State']
+            ].join(', '),
+              radiusValue(d)
+          ].join(': ') 
+            :
+          [
+            d['Country/Region'],
+            radiusValue(d)
+          ].join(': ')
+      );
+
+      circles2.exit().remove();
+    }
     
     circles.exit().remove();
     
@@ -203,17 +273,13 @@ export const main = () => {
 
   const updateDatarender = data => {
 
-    const factor = current === "deaths" ? 1/2.5 : 1/3.5;
-
-    /*
-    const sizeScale = scaleSqrt()
-      .domain([0, max(data.covidData, radiusValue)])
-      .range([0, Math.pow(max(data.covidData, radiusValue), factor)]);
-    */
-    const sizeScale = d => Math.pow(d, factor);  
+    // const factor = current === "deaths" ? 1/2.5 : 1/3.5;
+    // const sizeScale = d => Math.pow(d, factor);
+    const sizeScale = d => Math.pow(d/50, 1/2);
 
     data.covidData.forEach(d => {
       d.pos = projection(d.coords);
+      d.state = data.name[0];
     });
     
     const circles = g.selectAll('circle')
@@ -241,9 +307,78 @@ export const main = () => {
           ].join(': ')
       );
     
+      if(data.covidData2) {  
+        data.covidData2.forEach(d => {
+          d.pos = projection(d.coords);
+          d.state = data.name[1];
+        });
+
+        function handleMouseover(d, i){
+          select(this)
+            .attr("fill", colorScheme[data.name[1]]['hover']);
+        }
     
+        function handleMouseout(d, i){
+          select(this)
+            .attr("fill", colorScheme[data.name[1]]['default'])
+        }
+  
+        const circles2 = circles.select(`circle .country-${data.name[0]}-circle`)
+                          .data(data.covidData2);
+      
+        circles2.enter()
+          .append('circle')
+          .attr('class', `country-${data.name[1]}-circle`)
+          .attr('cx', d => +d.pos[0])
+          .attr('cy', d => +d.pos[1])
+          .attr('r',  d => sizeScale(radiusValue(d)))
+          .attr("fill", colorScheme[data.name[1]]['default'])
+          .attr("fill-opacity", "0.489216")
+          .on('mouseover', handleMouseover)
+          .on('mouseout', handleMouseout)
+          .on('click', d => updateByClick(d))
+          .append('title')
+          .text(d =>
+              d['Province/State'] ?
+              [  
+                [
+                  d['Country/Region'],
+                  d['Province/State']
+                ].join(', '),
+                  radiusValue(d)
+              ].join(': ') 
+                :
+              [
+                d['Country/Region'],
+                radiusValue(d)
+              ].join(': ')
+          );   
+  
+        circles2
+          .transition().duration(100)
+          .attr('r', d => sizeScale(radiusValue(d)))
+      
+        circles2.selectAll('title')
+          .text(d =>
+            d['Province/State'] ?
+            [  
+              [
+                d['Country/Region'],
+                d['Province/State']
+              ].join(', '),
+                radiusValue(d)
+            ].join(': ') 
+              :
+            [
+              d['Country/Region'],
+              radiusValue(d)
+            ].join(': ')
+        );
+  
+        circles2.exit().remove();
+      }
+
     circles.exit().remove();
-    
   };
 
 
@@ -333,17 +468,17 @@ export const main = () => {
   });
 
   /// line graph
-
   const plot = select(".plot")
                 .append("svg")
                 .attr("width", 500)
                 .attr("height", 500);
   
-  function updateByClick(d){
-
+  function updateByClick(d) {
     const temp = parseID(d);
-    selectedRegion = temp === selectedRegion ? null : temp;
+    // selectedRegion = temp === selectedRegion ? null : temp;
+    selectedRegion = temp;
     console.log(selectedRegion)
+    console.log(d);
 
     const circles = g.selectAll('circle')
     circles.classed("highlighted", d => selectedRegion && selectedRegion === parseID(d))
@@ -392,7 +527,7 @@ export const main = () => {
       plotg.append("path")
         .datum(value)
         .attr("fill", "none")
-        .attr("stroke", colorScheme[current]['default'] )
+        .attr("stroke", colorScheme[d.state]['default'] )
         .attr("stroke-width", 1.5)
         .attr("d", line()
           .x((d, i) => x(timeParse("%m/%d/%y")(DateKeys[i])))
@@ -403,10 +538,7 @@ export const main = () => {
           .attr("y", -20)
           .attr("x", innerWidth / 2)
           .attr("text-anchor", "middle")
-          .text(`${selectedRegion.endsWith('/') ? selectedRegion.slice(0, -1): selectedRegion}(${current})`);
-
-
+          .text(`${selectedRegion.endsWith('/') ? selectedRegion.slice(0, -1): selectedRegion} (${current})`);
     }
   }
-  
 }
