@@ -1,0 +1,102 @@
+body {
+  overflow: initial;
+  width: 100%;
+  height: 100%;
+}
+
+.dashboard {
+  display: flex;
+  flex-direction: row;
+}
+
+.container {
+  width: 960px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-items: center;
+  background-color: #eeeeee;
+}
+
+.plot {
+  width: 500px;
+  height: 500px;
+  background-color: #f7f4f4f6;
+}
+
+#map {
+  width: 960px;
+  height: 500px;
+  display: flex;
+  align-items: center;
+  justify-items: center;
+}
+
+
+
+.sphere {
+  fill: #f2f2f2;
+}
+
+.country {
+  stroke: black;
+  stroke-width: 0.08px;
+}
+
+.country-circle.highlighted {
+  stroke-width: 1.5;
+}
+/*
+.country-circle:hover {
+  fill: #9a0101;
+}
+*/
+
+.tick text {
+  font-size: 1.3em;
+  fill: #444444;
+  font-family: sans-serif;
+}
+
+.tick circle, .country-circle {
+  stroke: black;
+  stroke-width: 0.3;
+ 
+}
+
+.legend-title {
+  font-size: 2.2em;
+  fill: #444444;
+  font-family: sans-serif;
+}
+
+.track,
+.track-inset,
+.track-overlay {
+  stroke-linecap: round;
+}
+
+.track {
+  stroke: #000;
+  stroke-opacity: 0.3;
+  stroke-width: 10px;
+}
+
+.track-inset {
+  stroke: #dcdcdc;
+  stroke-width: 8px;
+}
+
+.track-overlay {
+  pointer-events: stroke;
+  stroke-width: 50px;
+  stroke: transparent;
+  cursor: crosshair;
+}
+
+.handle {
+  fill: #fff;
+  stroke: #000;
+  stroke-opacity: 0.5;
+  stroke-width: 1.25px;
+}
