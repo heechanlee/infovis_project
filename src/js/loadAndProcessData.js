@@ -11,7 +11,7 @@ const row = d => {
 export const loadAndProcessData = k => {
 
   // const csvpath = './csv/' + k + '.csv';
-  let regex = /(.*) \+ (.*)/;
+  const regex = /(.*) \+ (.*)/;
   if(k.match(regex)) {
     const csvpath1 = `./csv/${k.replace(regex, "$1")}.csv`;
     const csvpath2 = `./csv/${k.replace(regex, "$2")}.csv`;
