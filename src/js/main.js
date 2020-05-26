@@ -15,7 +15,8 @@ import {
   line,
   scaleLinear,
   axisBottom,
-  axisLeft
+  axisLeft,
+  axisRight
 } from 'd3';
 import { loadAndProcessData } from './loadAndProcessData';
 
@@ -43,7 +44,7 @@ export const main = () => {
                           {'default': "#25ec28", 'hover': "#2cc715"}
                       };
   const keys = ['confirmed', 'deaths', 'recovered', 'confirmed + deaths', 'confirmed + recovered'];
-  let regex = /(.*) \+ (.*)/;
+
 
   keys.forEach(k => {
     alldata[k] = loadAndProcessData(k);
@@ -131,12 +132,13 @@ export const main = () => {
   // const factor = current === "deaths" ? 1/2.5 : 1/3.5;
   //  const sizeScale = d => Math.pow(d, factor);
     console.log(data);
+    selectedRegion = null;
 
     const sizeScale = d => Math.pow(d/50, 1/2);
 
     data.covidData.forEach(d => {
       d.pos = projection(d.coords);
-      d.state = data.name[0];
+      // d.state = data.name[0];
     });   
 
     function handleMouseover(d, i){
@@ -151,12 +153,12 @@ export const main = () => {
 
     g.selectAll('circle').remove();
 
-    const circles = g.selectAll('circle')
+    const circles = g.selectAll('.country-circle')
       .data(data.covidData);    
     
     circles.enter()
       .append('circle')
-      .attr('class', `country-${data.name[0]}-circle`)
+      .attr('class', 'country-circle')
       .attr('cx', d => +d.pos[0])
       .attr('cy', d => +d.pos[1])
       .attr('r',  d => sizeScale(radiusValue(d)))
@@ -208,22 +210,32 @@ export const main = () => {
 
       data.covidData2.forEach(d => {
         d.pos = projection(d.coords);
-        d.state = data.name[1];
+        // d.state = data.name[1];
       });   
 
-      const circles2 = circles.select(`circle .country-${data.name[0]}-circle`)
+      function handleMouseover2(d, i){
+        select(this)
+          .attr("fill", colorScheme[data.name[1]]['hover']);
+      }
+  
+      function handleMouseout2(d, i){
+        select(this)
+          .attr("fill", colorScheme[data.name[1]]['default'])
+      }
+
+      const circles2 = g.selectAll(".country-circle2")
                         .data(data.covidData2);
     
       circles2.enter()
         .append('circle')
-        .attr('class', `country-${data.name[1]}-circle`)
+        .attr('class', 'country-circle2')
         .attr('cx', d => +d.pos[0])
         .attr('cy', d => +d.pos[1])
         .attr('r',  d => sizeScale(radiusValue(d)))
         .attr("fill", colorScheme[data.name[1]]['default'])
         .attr("fill-opacity", "0.489216")
-        .on('mouseover', handleMouseover)
-        .on('mouseout', handleMouseout)
+        .on('mouseover', handleMouseover2)
+        .on('mouseout', handleMouseout2)
         .on('click', d => updateByClick(d))
         .append('title')
         .text(d =>
@@ -279,11 +291,13 @@ export const main = () => {
 
     data.covidData.forEach(d => {
       d.pos = projection(d.coords);
-      d.state = data.name[0];
+      // d.state = data.name[0];
     });
     
-    const circles = g.selectAll('circle')
+    const circles = g.selectAll('.country-circle')
       .data(data.covidData);
+
+    // console.log(circles);
 
     circles
       .transition().duration(100)
@@ -308,6 +322,7 @@ export const main = () => {
       );
     
       if(data.covidData2) {  
+        /*
         data.covidData2.forEach(d => {
           d.pos = projection(d.coords);
           d.state = data.name[1];
@@ -322,13 +337,15 @@ export const main = () => {
           select(this)
             .attr("fill", colorScheme[data.name[1]]['default'])
         }
+        */
   
-        const circles2 = circles.select(`circle .country-${data.name[0]}-circle`)
+        const circles2 = g.selectAll(".country-circle2")
                           .data(data.covidData2);
-      
+        // console.log(circles2);
+        /*
         circles2.enter()
           .append('circle')
-          .attr('class', `country-${data.name[1]}-circle`)
+          .attr('class', `country-circle2`)
           .attr('cx', d => +d.pos[0])
           .attr('cy', d => +d.pos[1])
           .attr('r',  d => sizeScale(radiusValue(d)))
@@ -353,7 +370,7 @@ export const main = () => {
                 radiusValue(d)
               ].join(': ')
           );   
-  
+        */
         circles2
           .transition().duration(100)
           .attr('r', d => sizeScale(radiusValue(d)))
@@ -475,13 +492,18 @@ export const main = () => {
   
   function updateByClick(d) {
     const temp = parseID(d);
-    // selectedRegion = temp === selectedRegion ? null : temp;
-    selectedRegion = temp;
-    console.log(selectedRegion)
-    console.log(d);
+    selectedRegion = temp === selectedRegion ? null : temp;
+    // selectedRegion = temp;
+    // console.log(selectedRegion)
+    // console.log(d);
 
     const circles = g.selectAll('circle')
     circles.classed("highlighted", d => selectedRegion && selectedRegion === parseID(d))
+
+
+    const highlightedMain = g.selectAll('circle.country-circle.highlighted').data()
+    const highlightedSub = g.selectAll('circle.country-circle2.highlighted').data()
+
 
     if(selectedRegion === null){
       plot.selectAll('g').remove();
@@ -500,45 +522,110 @@ export const main = () => {
 
       const plotg = plot.append('g')
                           .attr("transform", `translate(${graphMargin.left},${graphMargin.top})`);
+
       const value = DateKeys.reduce((prev, cur) => {
         prev.push(d[cur]);
         return prev;
       }, []);
 
-      console.log(value);
-      console.log(max(value));
+      const MainValues = highlightedMain.length !== 0 ? DateKeys.reduce((prev, cur) => {
+        prev.push(highlightedMain[0][cur]);
+        return prev;
+      }, []) : null;
 
-      const x = scaleTime()
-      .domain(extent(DateKeys, timeParse("%m/%d/%y")))
-      .range([ 0, innerWidth ]);
-      plotg.append("g")
-        .attr("transform", `translate(0,${innerHeight})`)
-        .call(axisBottom(x).tickFormat(formatDate));
+      const SubValues = highlightedSub.length !== 0 ? DateKeys.reduce((prev, cur) => {
+        prev.push(highlightedSub[0][cur]);
+        return prev;
+      }, []) : null;
 
-      // Add Y axis
-      const y = scaleLinear()
-        .domain([0, max(value, d => +d)])
-        .range([ innerHeight, 0 ]);
-      plotg.append("g")
-        .call(axisLeft(y));
+      if(MainValues && SubValues){
+        const regex = /(.*) \+ (.*)/;
+        const [_, main, sub] = current.match(regex);
 
-      // Add the line
-      
-      plotg.append("path")
-        .datum(value)
-        .attr("fill", "none")
-        .attr("stroke", colorScheme[d.state]['default'] )
-        .attr("stroke-width", 1.5)
-        .attr("d", line()
-          .x((d, i) => x(timeParse("%m/%d/%y")(DateKeys[i])))
-          .y(d => y(+d))
-          )
-      
-      plotg.append("text")
-          .attr("y", -20)
-          .attr("x", innerWidth / 2)
-          .attr("text-anchor", "middle")
-          .text(`${selectedRegion.endsWith('/') ? selectedRegion.slice(0, -1): selectedRegion} (${current})`);
+        console.log(main);
+
+        const x = scaleTime()
+        .domain(extent(DateKeys, timeParse("%m/%d/%y")))
+        .range([ 0, innerWidth ]);
+        plotg.append("g")
+          .attr("transform", `translate(0,${innerHeight})`)
+          .call(axisBottom(x).tickFormat(formatDate));
+
+        // Add Y axis
+        const y = scaleLinear()
+          .domain([0, max([max(MainValues, d => +d), max(SubValues, d => +d)])])
+          .range([ innerHeight, 0 ]);
+        plotg.append("g")
+          .call(axisLeft(y));
+
+        // Add the line
+        
+        plotg.append("path")
+          .datum(MainValues)
+          .attr("fill", "none")
+          .attr("stroke", colorScheme[main]['default'])
+          //.attr("stroke", colorScheme[highlightedMain[0].state]['default'])
+          .attr("stroke-width", 1.5)
+          .attr("d", line()
+            .x((d, i) => x(timeParse("%m/%d/%y")(DateKeys[i])))
+            .y(d => y(+d))
+            )
+
+        // Add the line
+        
+        plotg.append("path")
+          .datum(SubValues)
+          .attr("fill", "none")
+          .attr("stroke", colorScheme[sub]['default'])
+          //.attr("stroke", colorScheme[highlightedSub[0].state]['default'])
+          .attr("stroke-width", 1.5)
+          .attr("d", line()
+            .x((d, i) => x(timeParse("%m/%d/%y")(DateKeys[i])))
+            .y(d => y(+d))
+            )
+            
+
+        plotg.append("text")
+            .attr("y", -20)
+            .attr("x", innerWidth / 2)
+            .attr("text-anchor", "middle")
+            .text(`${selectedRegion.endsWith('/') ? selectedRegion.slice(0, -1): selectedRegion} (${current})`);
+      }
+      else{
+
+        const x = scaleTime()
+        .domain(extent(DateKeys, timeParse("%m/%d/%y")))
+        .range([ 0, innerWidth ]);
+        plotg.append("g")
+          .attr("transform", `translate(0,${innerHeight})`)
+          .call(axisBottom(x).tickFormat(formatDate));
+
+        // Add Y axis
+        const y = scaleLinear()
+          .domain([0, max(value, d => +d)])
+          .range([ innerHeight, 0 ]);
+        plotg.append("g")
+          .call(axisLeft(y));
+
+        // Add the line
+        
+        plotg.append("path")
+          .datum(value)
+          .attr("fill", "none")
+          .attr("stroke", colorScheme[current]['default'] )
+          .attr("stroke-width", 1.5)
+          .attr("d", line()
+            .x((d, i) => x(timeParse("%m/%d/%y")(DateKeys[i])))
+            .y(d => y(+d))
+            )
+        
+        plotg.append("text")
+            .attr("y", -20)
+            .attr("x", innerWidth / 2)
+            .attr("text-anchor", "middle")
+            .text(`${selectedRegion.endsWith('/') ? selectedRegion.slice(0, -1): selectedRegion} (${current})`);
+
+      }
     }
   }
 }
