@@ -46,6 +46,10 @@ body {
 .country-circle.highlighted {
   stroke-width: 1.5;
 }
+
+.country-circle2.highlighted {
+  stroke-width: 1.5;
+}
 /*
 .country-circle:hover {
   fill: #9a0101;
@@ -58,7 +62,7 @@ body {
   font-family: sans-serif;
 }
 
-.tick circle, .country-circle {
+.tick circle, .country-circle, .country-circle2 {
   stroke: black;
   stroke-width: 0.3;
  
