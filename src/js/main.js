@@ -462,12 +462,18 @@ export const main = () => {
       .text(formatDate(startDate))
       .attr("transform", "translate(0," + (-25) + ")")
 
+  let currentDate = formatDateY(startDate);
+  // 라인차트에 현재 날짜를 표시하기 위해 현재 날짜의 x 마진을 담을 변수
+  let currentDate_x = 0;
+
   function updateByslider(h) {
     // update position and text of label according to slider scale
     handle.attr("cx", x(h));
     label
       .attr("x", x(h))
       .text(formatDate(h));
+
+    currentDate = formatDateY(h);
     
     radiusValue = d => +d[formatDateY(h)];
     selectedDate = formatDateY(h);
@@ -515,7 +521,7 @@ export const main = () => {
 
       const plotWidth = plot.attr("width");
       const plotHeight = plot.attr("height");
-      const graphMargin = {top: 40, right: 20, bottom: 40, left: 60};
+      const graphMargin = {top: 40, right: 20, bottom: 80, left: 60};
       const innerWidth = plotWidth - graphMargin.right - graphMargin.left;
       const innerHeight = plotHeight - graphMargin.top - graphMargin.bottom;
 
@@ -567,7 +573,12 @@ export const main = () => {
           //.attr("stroke", colorScheme[highlightedMain[0].state]['default'])
           .attr("stroke-width", 1.5)
           .attr("d", line()
-            .x((d, i) => x(timeParse("%m/%d/%y")(DateKeys[i])))
+          .x((d, i) => {
+            if (DateKeys[i] === currentDate) {
+              currentDate_x = x(timeParse("%m/%d/%y")(DateKeys[i]));
+            }
+            return x(timeParse("%m/%d/%y")(DateKeys[i]));
+          })
             .y(d => y(+d))
             )
 
@@ -590,6 +601,48 @@ export const main = () => {
             .attr("x", innerWidth / 2)
             .attr("text-anchor", "middle")
             .text(`${selectedRegion.endsWith('/') ? selectedRegion.slice(0, -1): selectedRegion} (${current})`);
+        
+        plotg.append("line")
+          .attr("x1", currentDate_x)
+          .attr("y1", 0)
+          .attr("x2", currentDate_x)
+          .attr("y2", innerHeight)
+          .attr("stroke", 'black')
+          .attr("stroke-width", 1.5)
+          .style("stroke-dasharray", "3, 3");
+
+        // 범례 추가
+        const LineChartLabels = plotg.append("g")
+                                      .attr("transform", `translate(${graphMargin.left},${0})`);
+        const LineChartLabels_main = LineChartLabels.append("g");
+        const LineChartLabels_sub = LineChartLabels.append("g")
+                                                    .attr("transform", `translate(${200},${0})`);
+
+        const LabelSquareLength = 15;
+
+        LineChartLabels_main.append("rect")
+          .attr("y", plotHeight - 65 - LabelSquareLength)
+          .attr("width", LabelSquareLength)
+          .attr("height", LabelSquareLength)
+          .attr("fill", colorScheme[main]['default']);
+
+        LineChartLabels_main.append("text")
+          .attr("y", plotHeight - 65)
+          .attr("x", LabelSquareLength + 10)
+          .attr("text-anchor", "left")
+          .text(main);
+
+        LineChartLabels_sub.append("rect")
+          .attr("y", plotHeight - 65 - LabelSquareLength)
+          .attr("width", LabelSquareLength)
+          .attr("height", LabelSquareLength)
+          .attr("fill", colorScheme[sub]['default']);
+
+        LineChartLabels_sub.append("text")
+          .attr("y", plotHeight - 65)
+          .attr("x", LabelSquareLength + 10)
+          .attr("text-anchor", "left")
+          .text(sub);
       }
       else{
 
@@ -615,15 +668,29 @@ export const main = () => {
           .attr("stroke", colorScheme[current]['default'] )
           .attr("stroke-width", 1.5)
           .attr("d", line()
-            .x((d, i) => x(timeParse("%m/%d/%y")(DateKeys[i])))
-            .y(d => y(+d))
-            )
+          .x((d, i) => {
+            if (DateKeys[i] === currentDate) {
+              currentDate_x = x(timeParse("%m/%d/%y")(DateKeys[i]));
+            }
+            return x(timeParse("%m/%d/%y")(DateKeys[i]));
+          })
+          .y(d => y(+d))
+          )
         
         plotg.append("text")
             .attr("y", -20)
             .attr("x", innerWidth / 2)
             .attr("text-anchor", "middle")
             .text(`${selectedRegion.endsWith('/') ? selectedRegion.slice(0, -1): selectedRegion} (${current})`);
+
+        plotg.append("line")
+          .attr("x1", currentDate_x)
+          .attr("y1", 0)
+          .attr("x2", currentDate_x)
+          .attr("y2", innerHeight)
+          .attr("stroke", 'black')
+          .attr("stroke-width", 1.5)
+          .style("stroke-dasharray", "3, 3");
 
       }
     }
