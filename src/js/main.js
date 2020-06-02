@@ -16,7 +16,8 @@ import {
   scaleLinear,
   axisBottom,
   axisLeft,
-  axisRight
+  axisRight,
+  easeSin
 } from 'd3';
 import { loadAndProcessData } from './loadAndProcessData';
 
@@ -483,6 +484,22 @@ export const main = () => {
       filteredData = data;
       updateDatarender(filteredData);
     });
+
+    if(selectedRegion){
+      const xChart = scaleTime()
+      .domain(extent(DateKeys, timeParse("%m/%d/%y")))
+      .range([ 0, innerWidth ]);
+
+      const verticalLine = plot.select('.verticalLine')
+      verticalLine
+      .attr("x1", xChart(timeParse("%m/%d/%y")(currentDate)))
+      .attr("y1", 0)
+      .attr("x2", xChart(timeParse("%m/%d/%y")(currentDate)))
+      .attr("y2", innerHeight)
+      
+    }
+
+
   };
 
   processed.then(data => {
@@ -496,6 +513,12 @@ export const main = () => {
                 .attr("width", 500)
                 .attr("height", 500);
   
+  const plotWidth = plot.attr("width");
+  const plotHeight = plot.attr("height");
+  const graphMargin = {top: 40, right: 20, bottom: 80, left: 60};
+  const innerWidth = plotWidth - graphMargin.right - graphMargin.left;
+  const innerHeight = plotHeight - graphMargin.top - graphMargin.bottom;
+
   function updateByClick(d) {
     const temp = parseID(d);
     selectedRegion = temp === selectedRegion ? null : temp;
@@ -518,12 +541,6 @@ export const main = () => {
     else{
       plot.selectAll('g').remove();
       plot.selectAll('path').remove();
-
-      const plotWidth = plot.attr("width");
-      const plotHeight = plot.attr("height");
-      const graphMargin = {top: 40, right: 20, bottom: 80, left: 60};
-      const innerWidth = plotWidth - graphMargin.right - graphMargin.left;
-      const innerHeight = plotHeight - graphMargin.top - graphMargin.bottom;
 
 
       const plotg = plot.append('g')
@@ -566,25 +583,20 @@ export const main = () => {
 
         // Add the line
         
-        plotg.append("path")
+        const pathMain = plotg.append("path")
           .datum(MainValues)
           .attr("fill", "none")
           .attr("stroke", colorScheme[main]['default'])
           //.attr("stroke", colorScheme[highlightedMain[0].state]['default'])
           .attr("stroke-width", 1.5)
           .attr("d", line()
-          .x((d, i) => {
-            if (DateKeys[i] === currentDate) {
-              currentDate_x = x(timeParse("%m/%d/%y")(DateKeys[i]));
-            }
-            return x(timeParse("%m/%d/%y")(DateKeys[i]));
-          })
-            .y(d => y(+d))
-            )
+              .x((d, i) =>  x(timeParse("%m/%d/%y")(DateKeys[i])))
+              .y(d => y(+d))
+          )
 
         // Add the line
         
-        plotg.append("path")
+        const pathSub = plotg.append("path")
           .datum(SubValues)
           .attr("fill", "none")
           .attr("stroke", colorScheme[sub]['default'])
@@ -595,6 +607,25 @@ export const main = () => {
             .y(d => y(+d))
             )
             
+        const pathLengthMain = pathMain.node().getTotalLength();
+        const pathLengthSub = pathSub.node().getTotalLength();
+
+        pathMain
+          .attr('stroke-dasharray', pathLengthMain)
+          .attr('stroke-dashoffset', pathLengthMain)
+          .transition()
+          .ease(easeSin)
+          .duration(1000)
+          .attr('stroke-dashoffset', 0)
+
+        pathSub
+          .attr('stroke-dasharray', pathLengthSub)
+          .attr('stroke-dashoffset', pathLengthSub)
+          .transition()
+          .ease(easeSin)
+          .duration(1000)
+          .attr('stroke-dashoffset', 0)
+
 
         plotg.append("text")
             .attr("y", -20)
@@ -603,42 +634,43 @@ export const main = () => {
             .text(`${selectedRegion.endsWith('/') ? selectedRegion.slice(0, -1): selectedRegion} (${current})`);
         
         plotg.append("line")
-          .attr("x1", currentDate_x)
+          .attr('class', 'verticalLine')
+          .attr("x1", x(timeParse("%m/%d/%y")(currentDate)))
           .attr("y1", 0)
-          .attr("x2", currentDate_x)
+          .attr("x2", x(timeParse("%m/%d/%y")(currentDate)))
           .attr("y2", innerHeight)
           .attr("stroke", 'black')
           .attr("stroke-width", 1.5)
           .style("stroke-dasharray", "3, 3");
 
         // 범례 추가
-        const LineChartLabels = plotg.append("g")
-                                      .attr("transform", `translate(${graphMargin.left},${0})`);
-        const LineChartLabels_main = LineChartLabels.append("g");
-        const LineChartLabels_sub = LineChartLabels.append("g")
-                                                    .attr("transform", `translate(${200},${0})`);
+        const legendG = plotg.append("g")
+                             .attr("transform", `translate(${graphMargin.left},${0})`);
+        const legendMain = legendG.append("g");
+        const legendSub = legendG.append("g")
+                                 .attr("transform", `translate(${200},${0})`);
 
         const LabelSquareLength = 15;
 
-        LineChartLabels_main.append("rect")
+        legendMain.append("rect")
           .attr("y", plotHeight - 65 - LabelSquareLength)
           .attr("width", LabelSquareLength)
           .attr("height", LabelSquareLength)
           .attr("fill", colorScheme[main]['default']);
 
-        LineChartLabels_main.append("text")
+        legendMain.append("text")
           .attr("y", plotHeight - 65)
           .attr("x", LabelSquareLength + 10)
           .attr("text-anchor", "left")
           .text(main);
 
-        LineChartLabels_sub.append("rect")
+        legendSub.append("rect")
           .attr("y", plotHeight - 65 - LabelSquareLength)
           .attr("width", LabelSquareLength)
           .attr("height", LabelSquareLength)
           .attr("fill", colorScheme[sub]['default']);
 
-        LineChartLabels_sub.append("text")
+        legendSub.append("text")
           .attr("y", plotHeight - 65)
           .attr("x", LabelSquareLength + 10)
           .attr("text-anchor", "left")
@@ -662,31 +694,56 @@ export const main = () => {
 
         // Add the line
         
-        plotg.append("path")
+        const pathMain = plotg.append("path")
           .datum(value)
           .attr("fill", "none")
           .attr("stroke", colorScheme[current]['default'] )
           .attr("stroke-width", 1.5)
           .attr("d", line()
-          .x((d, i) => {
-            if (DateKeys[i] === currentDate) {
-              currentDate_x = x(timeParse("%m/%d/%y")(DateKeys[i]));
-            }
-            return x(timeParse("%m/%d/%y")(DateKeys[i]));
-          })
+          .x((d, i) =>  x(timeParse("%m/%d/%y")(DateKeys[i])))
           .y(d => y(+d))
           )
-        
+
+        const pathLengthMain = pathMain.node().getTotalLength();
+
+        pathMain
+          .attr('stroke-dasharray', pathLengthMain)
+          .attr('stroke-dashoffset', pathLengthMain)
+          .transition()
+          .ease(easeSin)
+          .duration(1000)
+          .attr('stroke-dashoffset', 0)
+  
         plotg.append("text")
             .attr("y", -20)
             .attr("x", innerWidth / 2)
             .attr("text-anchor", "middle")
             .text(`${selectedRegion.endsWith('/') ? selectedRegion.slice(0, -1): selectedRegion} (${current})`);
 
+        const legendG = plotg.append("g")
+          .attr("transform", `translate(${innerWidth / 2 - 30},${0})`)
+        const legendMain = legendG.append("g");
+
+        const LabelSquareLength = 15;
+
+        legendMain.append("rect")
+        .attr("y", plotHeight - 65 - LabelSquareLength)
+        .attr("width", LabelSquareLength)
+        .attr("height", LabelSquareLength)
+        .attr("fill", colorScheme[current]['default']);
+
+        legendMain.append("text")
+        .attr("y", plotHeight - 65)
+        .attr("x", LabelSquareLength + 10)
+        .attr("text-anchor", "left")
+        .text(current);
+
+            
         plotg.append("line")
-          .attr("x1", currentDate_x)
+          .attr('class', 'verticalLine')
+          .attr("x1", x(timeParse("%m/%d/%y")(currentDate)))
           .attr("y1", 0)
-          .attr("x2", currentDate_x)
+          .attr("x2", x(timeParse("%m/%d/%y")(currentDate)))
           .attr("y2", innerHeight)
           .attr("stroke", 'black')
           .attr("stroke-width", 1.5)
