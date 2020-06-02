@@ -486,7 +486,6 @@ export const main = () => {
     });
 
     if(selectedRegion){
-      // #root > div > div.plot > svg > g > line
       const xChart = scaleTime()
       .domain(extent(DateKeys, timeParse("%m/%d/%y")))
       .range([ 0, innerWidth ]);
@@ -498,8 +497,6 @@ export const main = () => {
       .attr("x2", xChart(timeParse("%m/%d/%y")(currentDate)))
       .attr("y2", innerHeight)
       
-      
-
     }
 
 
@@ -544,8 +541,6 @@ export const main = () => {
     else{
       plot.selectAll('g').remove();
       plot.selectAll('path').remove();
-
-
 
 
       const plotg = plot.append('g')
