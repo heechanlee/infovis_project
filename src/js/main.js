@@ -135,7 +135,7 @@ export const main = () => {
     console.log(data);
     selectedRegion = null;
 
-    const sizeScale = d => Math.pow(d/50, 1/2);
+    const sizeScale = d => Math.pow(d/250, 1/2);
 
     data.covidData.forEach(d => {
       d.pos = projection(d.coords);
@@ -288,7 +288,7 @@ export const main = () => {
 
     // const factor = current === "deaths" ? 1/2.5 : 1/3.5;
     // const sizeScale = d => Math.pow(d, factor);
-    const sizeScale = d => Math.pow(d/50, 1/2);
+    const sizeScale = d => Math.pow(d/250, 1/2);
 
     data.covidData.forEach(d => {
       d.pos = projection(d.coords);
@@ -406,7 +406,7 @@ export const main = () => {
 
   // TODO: infer from data
   const startDate = new Date("2020-01-22"),
-      endDate = new Date("2020-03-28");
+      endDate = new Date("2020-06-04");
 
   const margin = {top:0, right:50, bottom:0, left:50},
       width = 960 - margin.left - margin.right,
@@ -451,6 +451,7 @@ export const main = () => {
       .attr("x", x)
       .attr("y", 10)
       .attr("text-anchor", "middle")
+      .attr("font-size", 10)
       .text(function(d) { return formatDate(d); });
 
   const handle = slider.insert("circle", ".track-overlay")
@@ -510,12 +511,12 @@ export const main = () => {
   /// line graph
   const plot = select(".plot")
                 .append("svg")
-                .attr("width", 500)
+                .attr("width", 800)
                 .attr("height", 500);
   
   const plotWidth = plot.attr("width");
   const plotHeight = plot.attr("height");
-  const graphMargin = {top: 40, right: 20, bottom: 80, left: 60};
+  const graphMargin = {top: 40, right: 20, bottom: 80, left: 70};
   const innerWidth = plotWidth - graphMargin.right - graphMargin.left;
   const innerHeight = plotHeight - graphMargin.top - graphMargin.bottom;
 
