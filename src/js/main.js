@@ -20,21 +20,9 @@ import {
   easeSin
 } from 'd3';
 import { loadAndProcessData } from './loadAndProcessData';
-
+import * as tf from '@tensorflow/tfjs';
 
 export const main = () => {
-  // let str = 'confirmed + deaths';
-  // let regex = /(.+) \+ (.+)/;
-  // if (str.match(regex)) {
-  //   console.log(`true\n${str.replace(regex, "$1")}\n${str.replace(regex, "$2")}`);
-  //   let k1 = str.replace(regex, "$1");
-  //   let k2 = str.replace(regex, "$2");
-  //   let d4t4 = {};
-  //   d4t4[k1] = loadAndProcessData(k1);
-  //   d4t4[k2] = loadAndProcessData(k2);
-  //   console.log(d4t4);
-  // }
-
   let alldata = {};
   const colorScheme = {
                         'confirmed': 
@@ -51,7 +39,7 @@ export const main = () => {
     alldata[k] = loadAndProcessData(k);
   })
 
-  console.log(alldata);
+  // console.log(alldata);
   
   let current = 'confirmed';
 
@@ -132,7 +120,7 @@ export const main = () => {
 
   // const factor = current === "deaths" ? 1/2.5 : 1/3.5;
   //  const sizeScale = d => Math.pow(d, factor);
-    console.log(data);
+    // console.log(data);
     selectedRegion = null;
 
     const sizeScale = d => Math.pow(d/250, 1/2);
@@ -676,6 +664,42 @@ export const main = () => {
           .attr("x", LabelSquareLength + 10)
           .attr("text-anchor", "left")
           .text(sub);
+
+          const Main_LRData = MainValues.slice(-10).map(elem => parseInt(elem));
+          const Sub_LRData = SubValues.slice(-10).map(elem => parseInt(elem));
+          console.log(Main_LRData);
+          console.log(Sub_LRData);
+
+          // Linear regression
+          const main_model = tf.sequential();
+          const sub_model = tf.sequential();
+
+          main_model.add(tf.layers.dense({units: 1, inputShape: [1]}));
+          sub_model.add(tf.layers.dense({units: 1, inputShape: [1]}));
+
+          // model compile
+          main_model.compile({loss: 'meanSquaredError', optimizer: 'sgd'});
+          sub_model.compile({loss: 'meanSquaredError', optimizer: 'sgd'});
+
+          // training data
+          const xs = tf.tensor([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [10]);
+          const y_main = tf.tensor(Main_LRData, [10]);
+          const y_sub = tf.tensor(Sub_LRData, [10]);
+
+          // Model training
+          main_model.fit(xs, y_main, {epochs: 3000}).then(() => {
+            // Test data Inference
+            const example = main_model.predict(tf.tensor([11, 12, 13])).dataSync();
+            console.log(example);
+            example.forEach(elem => console.log(elem));
+          });
+
+          sub_model.fit(xs, y_sub, {epochs: 3000}).then(() => {
+            // Test data Inference
+            const example = sub_model.predict(tf.tensor([11, 12, 13])).dataSync();
+            console.log(example);
+            example.forEach(elem => console.log(elem));
+          });
       }
       else{
 
@@ -750,6 +774,30 @@ export const main = () => {
           .attr("stroke-width", 1.5)
           .style("stroke-dasharray", "3, 3");
 
+          const highlighted = g.selectAll('circle.country-circle.highlighted').data()
+          const Values = highlighted.length !== 0 ? DateKeys.reduce((prev, cur) => {
+            prev.push(parseInt(highlighted[0][cur]));
+            return prev;
+          }, []) : null;
+          console.log(Values.slice(-10));
+
+        const model = tf.sequential();
+        model.add(tf.layers.dense({units: 1, inputShape: [1]}));
+
+        // model compile
+        model.compile({loss: 'meanSquaredError', optimizer: 'sgd'});
+
+        // training data
+        const xs = tf.tensor([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [10]);
+        const ys = tf.tensor(Values.slice(-10), [10]);
+        
+        // Model training
+        model.fit(xs, ys, {epochs: 3000}).then(() => {
+          // Test data Inference
+          const example = model.predict(tf.tensor([11, 12, 13])).dataSync();
+          console.log(example);
+          example.forEach(elem => console.log(elem));
+        });
       }
     }
   }
