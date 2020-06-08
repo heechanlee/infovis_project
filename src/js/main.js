@@ -637,7 +637,9 @@ export const main = () => {
                              .attr("transform", `translate(${graphMargin.left},${0})`);
         const legendMain = legendG.append("g");
         const legendSub = legendG.append("g")
-                                 .attr("transform", `translate(${200},${0})`);
+                                 .attr("transform", `translate(${150},${0})`);
+        const rate = legendG.append("g")
+                                 .attr("transform", `translate(${300},${0})`);
 
         const LabelSquareLength = 15;
 
@@ -665,10 +667,17 @@ export const main = () => {
           .attr("text-anchor", "left")
           .text(sub);
 
+          
           const Main_LRData = MainValues.slice(-10).map(elem => parseInt(elem));
           const Sub_LRData = SubValues.slice(-10).map(elem => parseInt(elem));
-          console.log(Main_LRData);
-          console.log(Sub_LRData);
+          console.log(Main_LRData[9]);
+          console.log(Sub_LRData[9]);
+
+        rate.append("text")
+          .attr("y", plotHeight - 65)
+          .attr("x", LabelSquareLength + 10)
+          .attr("text-anchor", "left")
+          .text(`rate of ${sub} cases: ${((Sub_LRData[9] / Main_LRData[9]) * 100).toFixed(2)}%`);
 
           // Linear regression
           const main_model = tf.sequential();
