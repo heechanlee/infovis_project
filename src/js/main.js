@@ -645,7 +645,9 @@ export const main = () => {
                              .attr("transform", `translate(${graphMargin.left},${0})`);
         const legendMain = legendG.append("g");
         const legendSub = legendG.append("g")
-                                 .attr("transform", `translate(${200},${0})`);
+                                 .attr("transform", `translate(${150},${0})`);
+        const rate = legendG.append("g")
+                                 .attr("transform", `translate(${300},${0})`);
 
         const LabelSquareLength = 15;
 
@@ -672,6 +674,15 @@ export const main = () => {
           .attr("x", LabelSquareLength + 10)
           .attr("text-anchor", "left")
           .text(sub);
+
+        const MainEnd = MainValues.slice(-1)
+        const SubEnd = SubValues.slice(-1)
+
+        rate.append("text")
+          .attr("y", plotHeight - 65)
+          .attr("x", LabelSquareLength + 10)
+          .attr("text-anchor", "left")
+          .text(`current rate of ${sub} cases: ${((SubEnd/MainEnd) * 100).toFixed(2)}%`);
       }
       else{
 
