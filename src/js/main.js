@@ -23,17 +23,6 @@ import { loadAndProcessData } from './loadAndProcessData';
 
 
 export const main = () => {
-  // let str = 'confirmed + deaths';
-  // let regex = /(.+) \+ (.+)/;
-  // if (str.match(regex)) {
-  //   console.log(`true\n${str.replace(regex, "$1")}\n${str.replace(regex, "$2")}`);
-  //   let k1 = str.replace(regex, "$1");
-  //   let k2 = str.replace(regex, "$2");
-  //   let d4t4 = {};
-  //   d4t4[k1] = loadAndProcessData(k1);
-  //   d4t4[k2] = loadAndProcessData(k2);
-  //   console.log(d4t4);
-  // }
 
   let alldata = {};
   const colorScheme = {
@@ -51,12 +40,13 @@ export const main = () => {
     alldata[k] = loadAndProcessData(k);
   })
 
-  console.log(alldata);
+  //console.log(alldata);
   
   let current = 'confirmed';
 
   let selectedRegion = null;
   let selectedDate = '01/22/20';
+  const predDays = 3;
   const parseID = d => d["Country/Region"] + '/' + d["Province/State"];
   let DateKeys;
 
@@ -132,7 +122,7 @@ export const main = () => {
 
   // const factor = current === "deaths" ? 1/2.5 : 1/3.5;
   //  const sizeScale = d => Math.pow(d, factor);
-    console.log(data);
+    //console.log(data);
     selectedRegion = null;
 
     const sizeScale = d => Math.pow(d/250, 1/2);
@@ -207,7 +197,7 @@ export const main = () => {
       );
 
     if(data.covidData2) {
-      console.log("두번째 데이터");
+      //console.log("두번째 데이터");
 
       data.covidData2.forEach(d => {
         d.pos = projection(d.coords);
@@ -323,55 +313,11 @@ export const main = () => {
       );
     
       if(data.covidData2) {  
-        /*
-        data.covidData2.forEach(d => {
-          d.pos = projection(d.coords);
-          d.state = data.name[1];
-        });
 
-        function handleMouseover(d, i){
-          select(this)
-            .attr("fill", colorScheme[data.name[1]]['hover']);
-        }
-    
-        function handleMouseout(d, i){
-          select(this)
-            .attr("fill", colorScheme[data.name[1]]['default'])
-        }
-        */
   
         const circles2 = g.selectAll(".country-circle2")
                           .data(data.covidData2);
-        // console.log(circles2);
-        /*
-        circles2.enter()
-          .append('circle')
-          .attr('class', `country-circle2`)
-          .attr('cx', d => +d.pos[0])
-          .attr('cy', d => +d.pos[1])
-          .attr('r',  d => sizeScale(radiusValue(d)))
-          .attr("fill", colorScheme[data.name[1]]['default'])
-          .attr("fill-opacity", "0.489216")
-          .on('mouseover', handleMouseover)
-          .on('mouseout', handleMouseout)
-          .on('click', d => updateByClick(d))
-          .append('title')
-          .text(d =>
-              d['Province/State'] ?
-              [  
-                [
-                  d['Country/Region'],
-                  d['Province/State']
-                ].join(', '),
-                  radiusValue(d)
-              ].join(': ') 
-                :
-              [
-                d['Country/Region'],
-                radiusValue(d)
-              ].join(': ')
-          );   
-        */
+
         circles2
           .transition().duration(100)
           .attr('r', d => sizeScale(radiusValue(d)))
@@ -407,6 +353,8 @@ export const main = () => {
   // TODO: infer from data
   const startDate = new Date("2020-01-22"),
       endDate = new Date("2020-06-04");
+
+  const offsetPred = (endDate - startDate) / (24*3600*1000) + 1;
 
   const margin = {top:0, right:50, bottom:0, left:50},
       width = 960 - margin.left - margin.right,
@@ -566,7 +514,10 @@ export const main = () => {
         const regex = /(.*) \+ (.*)/;
         const [_, main, sub] = current.match(regex);
 
-        console.log(main);
+        const realMain = MainValues.slice(0,-predDays);
+        const predMain = MainValues.slice(-predDays);
+        const realSub = SubValues.slice(0,-predDays);
+        const predSub = SubValues.slice(-predDays);
 
         const x = scaleTime()
         .domain(extent(DateKeys, timeParse("%m/%d/%y")))
@@ -585,7 +536,7 @@ export const main = () => {
         // Add the line
         
         const pathMain = plotg.append("path")
-          .datum(MainValues)
+          .datum(realMain)
           .attr("fill", "none")
           .attr("stroke", colorScheme[main]['default'])
           //.attr("stroke", colorScheme[highlightedMain[0].state]['default'])
@@ -594,11 +545,19 @@ export const main = () => {
               .x((d, i) =>  x(timeParse("%m/%d/%y")(DateKeys[i])))
               .y(d => y(+d))
           )
-
-        // Add the line
+        const pathPredMain = plotg.append("path")
+          .datum(predMain)
+          .attr("fill", "none")
+          .attr("stroke", colorScheme[main]['default'])
+          //.attr("stroke", colorScheme[highlightedMain[0].state]['default'])
+          .attr("stroke-width", 1.5)
+          .attr("d", line()
+              .x((d, i) =>  x(timeParse("%m/%d/%y")(DateKeys[offsetPred+i])))
+              .y(d => y(+d))
+          )
         
         const pathSub = plotg.append("path")
-          .datum(SubValues)
+          .datum(realSub)
           .attr("fill", "none")
           .attr("stroke", colorScheme[sub]['default'])
           //.attr("stroke", colorScheme[highlightedSub[0].state]['default'])
@@ -607,9 +566,31 @@ export const main = () => {
             .x((d, i) => x(timeParse("%m/%d/%y")(DateKeys[i])))
             .y(d => y(+d))
             )
+
+        const pathPredSub = plotg.append("path")
+          .datum(predSub)
+          .attr("fill", "none")
+          .attr("stroke", colorScheme[sub]['default'])
+          //.attr("stroke", colorScheme[highlightedSub[0].state]['default'])
+          .attr("stroke-width", 1.5)
+          .attr("d", line()
+            .x((d, i) => x(timeParse("%m/%d/%y")(DateKeys[offsetPred+i])))
+            .y(d => y(+d))
+            )
             
+
         const pathLengthMain = pathMain.node().getTotalLength();
         const pathLengthSub = pathSub.node().getTotalLength();
+        const pathLengthMainPred = pathPredMain.node().getTotalLength();
+        const pathLengthSubPred = pathPredSub.node().getTotalLength();
+
+        pathPredMain
+          .attr('stroke-dasharray', pathLengthMainPred)
+          .attr('stroke-dashoffset', pathLengthMainPred)
+
+        pathPredSub
+          .attr('stroke-dasharray', pathLengthSubPred)
+          .attr('stroke-dashoffset', pathLengthSubPred)
 
         pathMain
           .attr('stroke-dasharray', pathLengthMain)
@@ -618,6 +599,14 @@ export const main = () => {
           .ease(easeSin)
           .duration(1000)
           .attr('stroke-dashoffset', 0)
+          .on('end', () => {
+            pathPredMain
+              .transition()
+              .duration(1000)
+              .attr('stroke-dashoffset', 0)
+              .attr('stroke-dasharray', '2')        
+          })
+
 
         pathSub
           .attr('stroke-dasharray', pathLengthSub)
@@ -626,6 +615,13 @@ export const main = () => {
           .ease(easeSin)
           .duration(1000)
           .attr('stroke-dashoffset', 0)
+          .on('end', () => {
+            pathPredSub
+              .transition()
+              .duration(1000)
+              .attr('stroke-dashoffset', 0)
+              .attr('stroke-dasharray', '2')        
+          })
 
 
         plotg.append("text")
@@ -649,7 +645,9 @@ export const main = () => {
                              .attr("transform", `translate(${graphMargin.left},${0})`);
         const legendMain = legendG.append("g");
         const legendSub = legendG.append("g")
-                                 .attr("transform", `translate(${200},${0})`);
+                                 .attr("transform", `translate(${150},${0})`);
+        const rate = legendG.append("g")
+                                 .attr("transform", `translate(${300},${0})`);
 
         const LabelSquareLength = 15;
 
@@ -676,6 +674,15 @@ export const main = () => {
           .attr("x", LabelSquareLength + 10)
           .attr("text-anchor", "left")
           .text(sub);
+
+        const MainEnd = MainValues.slice(-1)
+        const SubEnd = SubValues.slice(-1)
+
+        rate.append("text")
+          .attr("y", plotHeight - 65)
+          .attr("x", LabelSquareLength + 10)
+          .attr("text-anchor", "left")
+          .text(`current rate of ${sub} cases: ${((SubEnd/MainEnd) * 100).toFixed(2)}%`);
       }
       else{
 
@@ -686,6 +693,9 @@ export const main = () => {
           .attr("transform", `translate(0,${innerHeight})`)
           .call(axisBottom(x).tickFormat(formatDate));
 
+
+        const realMain = value.slice(0,-predDays);
+        const predMain = value.slice(-predDays)
         // Add Y axis
         const y = scaleLinear()
           .domain([0, max(value, d => +d)])
@@ -694,9 +704,9 @@ export const main = () => {
           .call(axisLeft(y));
 
         // Add the line
-        
+
         const pathMain = plotg.append("path")
-          .datum(value)
+          .datum(realMain)
           .attr("fill", "none")
           .attr("stroke", colorScheme[current]['default'] )
           .attr("stroke-width", 1.5)
@@ -704,8 +714,22 @@ export const main = () => {
           .x((d, i) =>  x(timeParse("%m/%d/%y")(DateKeys[i])))
           .y(d => y(+d))
           )
+        const pathPredMain = plotg.append("path")
+          .datum(predMain)
+          .attr("fill", "none")
+          .attr("stroke", colorScheme[current]['default'] )
+          .attr("stroke-width", 1.5)
+          .attr("d", line()
+          .x((d, i) =>  x(timeParse("%m/%d/%y")(DateKeys[offsetPred+i])))
+          .y(d => y(+d))
+          )       
 
         const pathLengthMain = pathMain.node().getTotalLength();
+        const pathLengthMainPred = pathPredMain.node().getTotalLength();
+
+        pathPredMain
+          .attr('stroke-dasharray', pathLengthMainPred)
+          .attr('stroke-dashoffset', pathLengthMainPred);
 
         pathMain
           .attr('stroke-dasharray', pathLengthMain)
@@ -714,7 +738,15 @@ export const main = () => {
           .ease(easeSin)
           .duration(1000)
           .attr('stroke-dashoffset', 0)
-  
+          .on('end', () => {
+            pathPredMain
+              .transition()
+              .duration(1000)
+              .attr('stroke-dashoffset', 0)
+              .attr('stroke-dasharray', '2')
+          })       
+
+
         plotg.append("text")
             .attr("y", -20)
             .attr("x", innerWidth / 2)
